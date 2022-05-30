@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from sklearn.feature_extraction import CountVectorizer
+from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import KFold
@@ -62,35 +62,27 @@ def getFeature(input: list):
 def accuracy(title, x):
     print('-' * 50, '\n' + title, 'Accuracy: %.2f%%' % x)
 
-def model(X, y):
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.20, random_state = 0)
+def holdout(X, Y):
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size = 0.20, random_state = 0)
     model = LogisticRegression()
-    model.fit(X_train, y_train)
-    result = model.score(X_train, y_test)
-    accuracy('Holdout Validation Approach - Train and Test Set Split', (result*100.0))
-
-    y_pred = model.predict(X_test)
-
-    print('-' * 50)
-    print('Classification report\n', classification_report(y_test, y_pred))
-    print('Confusion Matrix\n', confusion_matrix(y_test, y_pred))
-    print('Precision: ', precision_score(y_test, y_pred))
-    print('Accuracy: ', accuracy_score(y_test, y_pred))
-    print('Cohen Kappa: ', cohen_kappa_score(y_test, y_pred))
-
-def kfold(X, y):
-    kfold = KFold(n_splits=5)
+    model.fit(X_train, Y_train)
+    result = model.score(X_train, Y_train)
+    
+    accuracy('Holdout Validation Approach', (result * 100))
+    
+def kfold(X, Y):
+    kfold = KFold(n_splits = 5)
     model = LogisticRegression()
-    results = cross_val_score(model, X, y, cv=kfold)
+    results = cross_val_score(model, X, Y, cv = kfold)
 
     accuracy('K-fold Cross-Validation', (results.mean() * 100))
 
-def sufflesplit(X, y):
-    kfold2 = ShuffleSplit(n_splits=10, test_size=0.20)
+def sufflesplit(X, Y):
+    kfold2 = ShuffleSplit(n_splits = 10, test_size = 0.20)
     model = LogisticRegression()
-    results = cross_val_score(model, X, y, cv=kfold2)
+    results = cross_val_score(model, X, Y, cv = kfold2)
 
-    accuracy('Repeated Random Test-Train Splits', (results.mean()*100.0))
+    accuracy('Repeated Random Test-Train Splits', (results.mean() * 100))
 
 def main():
     false_dataset = pd.read_csv('//content//fake-news-detection//datasets//fake.csv')
@@ -112,12 +104,24 @@ def main():
     countv = CountVectorizer(max_features = 5000)
 
     X = countv.fit_transform(corpus).toarray()
-    y = table.iloc[0:40000, 2].values
+    Y = table.iloc[0:40000, 2].values
 
-    model(X, y)
-    kfold(X,y)
-    sufflesplit(X, y)
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size = 0.20, random_state = 0)
+    model = LogisticRegression()
+    model.fit(X_train, Y_train)
 
+    Y_pred = model.predict(X_test)
+
+    print('-' * 50)
+    print('Classification report\n', classification_report(Y_test, Y_pred))
+    print('Confusion Matrix\n', confusion_matrix(Y_test, Y_pred))
+    print('Precision: ', precision_score(Y_test, Y_pred))
+    print('Accuracy: ', accuracy_score(Y_test, Y_pred))
+    print('Cohen Kappa: ', cohen_kappa_score(Y_test, Y_pred))
+
+    holdout(X, Y)
+    kfold(X, Y)
+    sufflesplit(X, Y)
 
 if __name__ == __main__:
     main()
